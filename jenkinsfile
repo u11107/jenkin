@@ -1,0 +1,37 @@
+pipeline {
+   agent {
+       docker {
+           image 'u11107/u11107:build'
+            args '-v /var/run/docker.sock:/var/run/docker.sock -u 0:0'
+            registryCredentialsId 'fa58ad7e-d6e4-4da3-b716-0c02ba35cd3b'
+       }
+   }
+
+   stages {
+      stage('Git pull') {
+         steps {
+            git(url: 'https://github.com/boxfuse/boxfuse-sample-java-war-hello.git', branch: 'master', poll: true)
+         }
+      }
+      stage('Build package') {
+          steps {
+              sh 'mvn package'
+          }
+      }
+      stage('Build container') {
+          steps {
+              sh 'mv target/hello-1.0.war /opt/build/'
+              sh 'cd /opt/build/ && docker build --tag u11107/boxfuse-jenkins .'
+              sh 'docker push u11107/boxfuse-jenkins'
+          }
+      }
+      stage('Run ') {
+        steps {
+          sshagent(['055f08e2-c6b4-4453-bc81-3ce16a57163d']){
+          sh 'ssh -o StrictHostKeyChecking=no -l root 35.238.20.130 docker run -d -p 8080:8080 u11107/boxfuse-jenkins && exit'}
+              
+        
+          }
+      }
+   }
+ }
